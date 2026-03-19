@@ -1,0 +1,95 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  password  String
+  name      String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  budgets Budget[]
+
+  @@map("users")
+}
+
+model Budget {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monthYear     String     // Format: "YYYY-MM"
+  mainIncome    Decimal    @default(0)
+  sideIncome    Decimal    @default(0)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  debts      DebtItem[]
+  snapshots  BudgetSnapshot[]
+  files      UploadedFile[]
+
+  @@unique([userId, monthYear])
+  @@map("budgets")
+}
+
+model DebtItem {
+  id                String     @id @default(cuid())
+  budgetId          String
+  budget            Budget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  type              String     // 'revolving' | 'loan' | 'utility'
+  category          String     // 'credit_card', 'auto_loan', 'personal_loan', 'electric', etc.
+  name              String
+  balance           Decimal
+  creditLimit       Decimal?   // For revolving only
+  interestRate      Decimal    // Annual percentage rate
+  minimumPayment    Decimal?   // For revolving
+  monthlyPayment    Decimal?   // For loans and utilities
+  payoffDate        DateTime?  // For loans
+  term              Int?       // Months remaining
+  
+  source            String     // 'manual' | 'pdf_upload'
+  extractedData     Json?      // Original AI extraction for audit trail
+  
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  uploadedFile      UploadedFile? @relation(fields: [uploadedFileId], references: [id])
+  uploadedFileId    String?
+
+  @@map("debt_items")
+}
+
+model UploadedFile {
+  id          String     @id @default(cuid())
+  budgetId    String
+  budget      Budget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  fileName    String
+  fileUrl     String     // Supabase Storage path
+  uploadedAt  DateTime   @default(now())
+
+  debts       DebtItem[]
+
+  @@map("uploaded_files")
+}
+
+model BudgetSnapshot {
+  id          String     @id @default(cuid())
+  budgetId    String
+  budget      Budget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+  
+  snapshotData Json      // Full budget state including all debts
+  createdAt   DateTime   @default(now())
+
+  @@map("budget_snapshots")
+}

@@ -1,0 +1,100 @@
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { supabaseServer } from "@/lib/supabase";
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const formData = await request.formData();
+    const file = formData.get("file") as File;
+
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    // Validate file type
+    const validTypes = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/jpg",
+    ];
+    if (!validTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: "Invalid file type. Only PDF and images allowed." },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json(
+        { error: "File too large. Max 10MB." },
+        { status: 400 }
+      );
+    }
+
+    const now = new Date();
+    const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    let budget = await prisma.budget.findUnique({
+      where: {
+        userId_monthYear: {
+          userId: session.user.id,
+          monthYear,
+        },
+      },
+    });
+
+    if (!budget) {
+      budget = await prisma.budget.create({
+        data: {
+          userId: session.user.id,
+          monthYear,
+        },
+      });
+    }
+
+    // Upload to Supabase Storage
+    const fileName = `${session.user.id}/${Date.now()}-${file.name}`;
+    const { data, error: uploadError } = await supabaseServer.storage
+      .from("budget-tracker-uploads")
+      .upload(fileName, file);
+
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      return NextResponse.json(
+        { error: "Failed to upload file" },
+        { status: 500 }
+      );
+    }
+
+    // Save file reference to database
+    const uploadedFile = await prisma.uploadedFile.create({
+      data: {
+        budgetId: budget.id,
+        fileName: file.name,
+        fileUrl: data.path,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      file: uploadedFile,
+      message: "File uploaded. Ready for AI analysis.",
+    });
+  } catch (error) {
+    console.error("File upload error:", error);
+    return NextResponse.json(
+      { error: "Failed to upload file" },
+      { status: 500 }
+    );
+  }
+}
