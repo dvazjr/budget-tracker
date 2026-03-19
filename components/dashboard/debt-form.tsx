@@ -4,6 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DebtFormProps {
   onSuccess: () => void;
@@ -98,38 +105,36 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
 
         <div>
           <label className="text-sm font-medium">Type *</label>
-          <select
-            name="type"
-            value={formData.type}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md text-sm"
-            disabled={loading}
-          >
-            <option value="revolving">Revolving (Credit Card)</option>
-            <option value="loan">Loan</option>
-            <option value="utility">Utility</option>
-          </select>
+          <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="revolving">Revolving (Credit Card)</SelectItem>
+              <SelectItem value="loan">Loan</SelectItem>
+              <SelectItem value="utility">Utility</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
           <label className="text-sm font-medium">Category *</label>
-          <select
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            className="w-full px-3 py-2 border border-input rounded-md text-sm"
-            disabled={loading}
-          >
-            <option value="credit_card">Credit Card</option>
-            <option value="auto_loan">Auto Loan</option>
-            <option value="personal_loan">Personal Loan</option>
-            <option value="student_loan">Student Loan</option>
-            <option value="electric">Electric</option>
-            <option value="water">Water</option>
-            <option value="internet">Internet</option>
-            <option value="phone">Phone</option>
-            <option value="other">Other</option>
-          </select>
+          <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="credit_card">Credit Card</SelectItem>
+              <SelectItem value="auto_loan">Auto Loan</SelectItem>
+              <SelectItem value="personal_loan">Personal Loan</SelectItem>
+              <SelectItem value="student_loan">Student Loan</SelectItem>
+              <SelectItem value="electric">Electric</SelectItem>
+              <SelectItem value="water">Water</SelectItem>
+              <SelectItem value="internet">Internet</SelectItem>
+              <SelectItem value="phone">Phone</SelectItem>
+              <SelectItem value="other">Other</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div>
