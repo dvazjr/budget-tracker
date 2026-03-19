@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DebtForm } from "@/components/dashboard/debt-form";
 import { FileUpload } from "@/components/dashboard/file-upload";
 import { DebtTable } from "@/components/dashboard/debt-table";
+import { IncomeForm } from "@/components/dashboard/income-form";
 
 interface DebtItem {
   id: string;
@@ -62,15 +63,7 @@ export default function DebtsPage() {
   return (
     <div className="space-y-8">
       {/* Income Input Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Income</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {/* Income form component will go here */}
-          <p className="text-gray-500">Income management section</p>
-        </CardContent>
-      </Card>
+      <IncomeForm onSuccess={fetchDebts} />
 
       {/* Add Debt Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
