@@ -109,7 +109,7 @@ const ToastDescription = React.forwardRef<
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
 type ToastActionElement = React.ReactElement<any>
-export interface Toast {
+export interface ToastProps {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
@@ -119,7 +119,6 @@ export interface Toast {
 }
 
 export {
-  type Toast,
   type ToastActionElement,
   ToastProvider,
   ToastViewport,

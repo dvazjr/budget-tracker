@@ -21,6 +21,7 @@ interface DebtItem {
   monthlyPayment?: number;
   payoffDate?: string;
   term?: number;
+  includeInAnalysis?: boolean;
   source: string;
 }
 
@@ -33,13 +34,34 @@ export default function DebtsPage() {
   useEffect(() => {
     if (!session?.user?.id) return;
     fetchDebts();
+
+    // Refetch when page becomes visible (e.g., navigating back from another page)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDebts();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', fetchDebts);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', fetchDebts);
+    };
   }, [session]);
 
   const fetchDebts = async () => {
     try {
       const res = await fetch("/api/debts");
       const data = await res.json();
-      setDebts(data);
+
+      // Separate recurring expenses from regular debts
+      const recurringExpenses = data.filter((d: DebtItem) => d.type === "recurring");
+      const regularDebts = data.filter((d: DebtItem) => d.type !== "recurring");
+
+      // Put recurring expenses at the top
+      setDebts([...recurringExpenses, ...regularDebts]);
     } catch (error) {
       console.error("Error fetching debts:", error);
     } finally {
@@ -55,6 +77,38 @@ export default function DebtsPage() {
       setDebts(debts.filter((d) => d.id !== debtId));
     } catch (error) {
       console.error("Error deleting debt:", error);
+    }
+  };
+
+  const handleToggleAnalysis = async (debtId: string, include: boolean) => {
+    try {
+      const res = await fetch("/api/debts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: debtId, includeInAnalysis: include }),
+      });
+
+      if (res.ok) {
+        setDebts(debts.map((d) => (d.id === debtId ? { ...d, includeInAnalysis: include } : d)));
+      }
+    } catch (error) {
+      console.error("Error toggling analysis:", error);
+    }
+  };
+
+  const handleUpdatePayment = async (debtId: string, amount: number) => {
+    try {
+      const res = await fetch("/api/debts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: debtId, monthlyPayment: amount }),
+      });
+
+      if (res.ok) {
+        setDebts(debts.map((d) => (d.id === debtId ? { ...d, monthlyPayment: amount } : d)));
+      }
+    } catch (error) {
+      console.error("Error updating payment:", error);
     }
   };
 
@@ -97,7 +151,7 @@ export default function DebtsPage() {
               No debts added yet. Start by adding a debt or uploading a statement.
             </p>
           ) : (
-            <DebtTable debts={debts} onDelete={handleDeleteDebt} />
+            <DebtTable debts={debts} onDelete={handleDeleteDebt} onToggleAnalysis={handleToggleAnalysis} onUpdatePayment={handleUpdatePayment} />
           )}
         </CardContent>
       </Card>

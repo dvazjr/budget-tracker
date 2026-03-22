@@ -37,6 +37,34 @@ export async function GET(request: NextRequest) {
         data: {
           userId: session.user.id,
           monthYear,
+          debts: {
+            create: [
+              {
+                name: "Food",
+                type: "recurring",
+                category: "food",
+                monthlyPayment: 0,
+                source: "default",
+                includeInAnalysis: true,
+              },
+              {
+                name: "Gasoline",
+                type: "recurring",
+                category: "gasoline",
+                monthlyPayment: 0,
+                source: "default",
+                includeInAnalysis: true,
+              },
+              {
+                name: "Entertainment",
+                type: "recurring",
+                category: "entertainment",
+                monthlyPayment: 0,
+                source: "default",
+                includeInAnalysis: true,
+              },
+            ],
+          },
         },
         include: {
           debts: true,
@@ -45,7 +73,23 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(budget);
+    // Convert Decimal/String fields to proper numbers for frontend
+    const formattedBudget = {
+      ...budget,
+      mainIncome: parseFloat(budget.mainIncome as any) || 0,
+      sideIncome: parseFloat(budget.sideIncome as any) || 0,
+      debts: budget.debts.map((debt: any) => ({
+        ...debt,
+        balance: debt.balance ? parseFloat(debt.balance) : undefined,
+        creditLimit: debt.creditLimit ? parseFloat(debt.creditLimit) : undefined,
+        interestRate: debt.interestRate ? parseFloat(debt.interestRate) : undefined,
+        minimumPayment: debt.minimumPayment ? parseFloat(debt.minimumPayment) : undefined,
+        monthlyPayment: debt.monthlyPayment ? parseFloat(debt.monthlyPayment) : undefined,
+        term: debt.term ? parseInt(debt.term) : undefined,
+      })),
+    };
+
+    return NextResponse.json(formattedBudget);
   } catch (error) {
     console.error("Budget GET error:", error);
     return NextResponse.json(
@@ -99,7 +143,23 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(budget);
+    // Convert Decimal/String fields to proper numbers for frontend
+    const formattedBudget = {
+      ...budget,
+      mainIncome: parseFloat(budget.mainIncome as any) || 0,
+      sideIncome: parseFloat(budget.sideIncome as any) || 0,
+      debts: budget.debts.map((debt: any) => ({
+        ...debt,
+        balance: debt.balance ? parseFloat(debt.balance) : undefined,
+        creditLimit: debt.creditLimit ? parseFloat(debt.creditLimit) : undefined,
+        interestRate: debt.interestRate ? parseFloat(debt.interestRate) : undefined,
+        minimumPayment: debt.minimumPayment ? parseFloat(debt.minimumPayment) : undefined,
+        monthlyPayment: debt.monthlyPayment ? parseFloat(debt.monthlyPayment) : undefined,
+        term: debt.term ? parseInt(debt.term) : undefined,
+      })),
+    };
+
+    return NextResponse.json(formattedBudget);
   } catch (error) {
     console.error("Budget POST error:", error);
     return NextResponse.json(

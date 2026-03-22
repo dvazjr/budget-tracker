@@ -13,7 +13,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { fileId } = await request.json();
+    const body = await request.json();
+    const { fileId, pdfText } = body;
 
     if (!fileId) {
       return NextResponse.json(
@@ -49,9 +50,7 @@ export async function POST(request: NextRequest) {
 
     // Check file type and extract accordingly
     if (uploadedFile.fileName.toLowerCase().endsWith(".pdf")) {
-      // For PDF files, we need to extract text on the client side
-      // This endpoint expects the text to be already extracted
-      const { pdfText } = await request.json();
+      // For PDF files, we expect the text to be already extracted on the client
       if (!pdfText) {
         return NextResponse.json(
           { error: "PDF text required. Extract on client side." },
@@ -65,55 +64,56 @@ export async function POST(request: NextRequest) {
       textContent = Buffer.from(arrayBuffer).toString("base64");
     }
 
-    // Analyze with Gemini
-    const analysis = await analyzeDebtStatement(textContent);
+    // Try to analyze with Gemini, but don't fail if it doesn't work
+    let analysis;
+    let createdDebts = [];
 
-    // Create debt items from analysis
-    const createdDebts = [];
-    for (const debtData of analysis.debts) {
-      // Only create if confidence > 60%
-      if (debtData.confidence < 60) {
-        continue;
+    try {
+      analysis = await analyzeDebtStatement(textContent);
+
+      // Create debt items from analysis
+      for (const debtData of analysis.debts) {
+        // Only create if confidence > 60%
+        if (debtData.confidence < 60) {
+          continue;
+        }
+
+        const debt = await prisma.debtItem.create({
+          data: {
+            budgetId: uploadedFile.budgetId,
+            name: debtData.name,
+            type: debtData.type,
+            category: debtData.category,
+            balance: debtData.balance,
+            creditLimit: debtData.creditLimit || null,
+            interestRate: debtData.interestRate,
+            minimumPayment: debtData.minimumPayment || null,
+            monthlyPayment: debtData.monthlyPayment || null,
+            payoffDate: debtData.payoffDate
+              ? new Date(debtData.payoffDate)
+              : null,
+            term: debtData.term || null,
+            source: "pdf_upload",
+            extractedData: debtData,
+            uploadedFileId: fileId,
+          },
+        });
+
+        createdDebts.push(debt);
       }
-
-      const debt = await prisma.debtItem.create({
-        data: {
-          budgetId: uploadedFile.budgetId,
-          name: debtData.name,
-          type: debtData.type,
-          category: debtData.category,
-          balance: debtData.balance,
-          creditLimit: debtData.creditLimit || null,
-          interestRate: debtData.interestRate,
-          minimumPayment: debtData.minimumPayment || null,
-          monthlyPayment: debtData.monthlyPayment || null,
-          payoffDate: debtData.payoffDate
-            ? new Date(debtData.payoffDate)
-            : null,
-          term: debtData.term || null,
-          source: "pdf_upload",
-          extractedData: debtData,
-        },
-      });
-
-      createdDebts.push(debt);
+    } catch (geminiError) {
+      console.error("Gemini analysis failed, but file uploaded successfully:", geminiError);
+      // File is uploaded, user can manually add debts
     }
-
-    // Update file with debt references
-    await prisma.uploadedFile.update({
-      where: { id: fileId },
-      data: {
-        debts: {
-          connect: createdDebts.map((d) => ({ id: d.id })),
-        },
-      },
-    });
 
     return NextResponse.json({
       success: true,
-      analysis: analysis,
+      file: uploadedFile,
+      analysis: analysis || null,
       createdDebts: createdDebts,
-      message: `Extracted ${createdDebts.length} debt items from the statement.`,
+      message: createdDebts.length > 0
+        ? `Extracted ${createdDebts.length} debt items from the statement.`
+        : "File uploaded successfully. Please add debt information manually.",
     });
   } catch (error) {
     console.error("PDF analysis error:", error);

@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const force = formData.get("force") === "true";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -60,6 +61,25 @@ export async function POST(request: NextRequest) {
           monthYear,
         },
       });
+    }
+
+    // Check for duplicate filename (unless force flag is set)
+    if (!force) {
+      const existingFile = await prisma.uploadedFile.findFirst({
+        where: {
+          budgetId: budget.id,
+          fileName: file.name,
+        },
+      });
+
+      if (existingFile) {
+        return NextResponse.json({
+          warning: true,
+          duplicate: true,
+          message: `⚠️ This file "${file.name}" appears to have been uploaded before. Do you want to upload it again?`,
+          existingFile,
+        }, { status: 409 });
+      }
     }
 
     // Upload to Supabase Storage

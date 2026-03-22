@@ -1,12 +1,9 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { redirect } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { redirect, usePathname } from "next/navigation";
+import Link from "next/link";
 import { Navbar } from "@/components/dashboard/navbar";
-import OverviewTab from "./overview/page";
-import DebtsTab from "./debts/page";
-import AnalysisTab from "./analysis/page";
 
 export default function DashboardLayout({
   children,
@@ -14,6 +11,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { data: session, status } = useSession();
+  const pathname = usePathname();
 
   if (status === "unauthenticated") {
     redirect("/auth/signin");
@@ -23,21 +21,34 @@ export default function DashboardLayout({
     return <div>Loading...</div>;
   }
 
+  const tabs = [
+    { name: "Overview", path: "/dashboard/overview" },
+    { name: "Debts", path: "/dashboard/debts" },
+    { name: "Analysis", path: "/dashboard/analysis" },
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
       <div className="container mx-auto py-8">
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="debts">Debts</TabsTrigger>
-            <TabsTrigger value="analysis">Analysis</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">{children}</TabsContent>
-          <TabsContent value="debts">{children}</TabsContent>
-          <TabsContent value="analysis">{children}</TabsContent>
-        </Tabs>
+        <div className="mb-8">
+          <div className="inline-flex h-10 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground w-full max-w-md">
+            {tabs.map((tab) => (
+              <Link
+                key={tab.path}
+                href={tab.path}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 flex-1 ${
+                  pathname === tab.path
+                    ? "bg-background text-foreground shadow-sm"
+                    : "hover:bg-background/50"
+                }`}
+              >
+                {tab.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+        {children}
       </div>
     </div>
   );

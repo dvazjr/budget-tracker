@@ -21,6 +21,7 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
   const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
+    accountNumber: "",
     type: "revolving",
     category: "credit_card",
     balance: "",
@@ -44,8 +45,22 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
     setError("");
     setLoading(true);
 
-    if (!formData.name || !formData.balance || !formData.interestRate) {
-      setError("Name, balance, and interest rate are required");
+    const isExpense = formData.type === "expense";
+
+    if (!formData.name) {
+      setError("Name is required");
+      setLoading(false);
+      return;
+    }
+
+    if (!isExpense && (!formData.balance || !formData.interestRate)) {
+      setError("Balance and interest rate are required for debts");
+      setLoading(false);
+      return;
+    }
+
+    if (isExpense && !formData.monthlyPayment) {
+      setError("Monthly payment is required for expenses");
       setLoading(false);
       return;
     }
@@ -64,6 +79,7 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
       // Reset form
       setFormData({
         name: "",
+        accountNumber: "",
         type: "revolving",
         category: "credit_card",
         balance: "",
@@ -104,6 +120,18 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
         </div>
 
         <div>
+          <label className="text-sm font-medium">Account Number (Last 4)</label>
+          <Input
+            name="accountNumber"
+            placeholder="e.g., 1234 (last 4 digits)"
+            value={formData.accountNumber}
+            onChange={handleChange}
+            disabled={loading}
+            maxLength={4}
+          />
+        </div>
+
+        <div>
           <label className="text-sm font-medium">Type *</label>
           <Select value={formData.type} onValueChange={(value) => setFormData({ ...formData, type: value })}>
             <SelectTrigger>
@@ -113,6 +141,7 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
               <SelectItem value="revolving">Revolving (Credit Card)</SelectItem>
               <SelectItem value="loan">Loan</SelectItem>
               <SelectItem value="utility">Utility</SelectItem>
+              <SelectItem value="expense">Monthly Expense</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -132,93 +161,118 @@ export function DebtForm({ onSuccess }: DebtFormProps) {
               <SelectItem value="water">Water</SelectItem>
               <SelectItem value="internet">Internet</SelectItem>
               <SelectItem value="phone">Phone</SelectItem>
+              <SelectItem value="food">Food</SelectItem>
+              <SelectItem value="gasoline">Gasoline</SelectItem>
+              <SelectItem value="entertainment">Entertainment</SelectItem>
               <SelectItem value="other">Other</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div>
-          <label className="text-sm font-medium">Balance *</label>
-          <Input
-            name="balance"
-            type="number"
-            placeholder="0.00"
-            value={formData.balance}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+        {formData.type !== "expense" && (
+          <>
+            <div>
+              <label className="text-sm font-medium">Balance *</label>
+              <Input
+                name="balance"
+                type="number"
+                placeholder="0.00"
+                value={formData.balance}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
 
-        <div>
-          <label className="text-sm font-medium">Interest Rate (%) *</label>
-          <Input
-            name="interestRate"
-            type="number"
-            placeholder="18.5"
-            value={formData.interestRate}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+            <div>
+              <label className="text-sm font-medium">Interest Rate (%) *</label>
+              <Input
+                name="interestRate"
+                type="number"
+                placeholder="18.5"
+                value={formData.interestRate}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
+          </>
+        )}
 
-        <div>
-          <label className="text-sm font-medium">Credit Limit</label>
-          <Input
-            name="creditLimit"
-            type="number"
-            placeholder="Optional"
-            value={formData.creditLimit}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+        {formData.type === "expense" && (
+          <div className="col-span-2">
+            <label className="text-sm font-medium">Monthly Payment *</label>
+            <Input
+              name="monthlyPayment"
+              type="number"
+              placeholder="0.00"
+              value={formData.monthlyPayment}
+              onChange={handleChange}
+              disabled={loading}
+            />
+          </div>
+        )}
 
-        <div>
-          <label className="text-sm font-medium">Minimum Payment</label>
-          <Input
-            name="minimumPayment"
-            type="number"
-            placeholder="Optional"
-            value={formData.minimumPayment}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+        {formData.type !== "expense" && (
+          <>
+            <div>
+              <label className="text-sm font-medium">Credit Limit</label>
+              <Input
+                name="creditLimit"
+                type="number"
+                placeholder="Optional"
+                value={formData.creditLimit}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
 
-        <div>
-          <label className="text-sm font-medium">Monthly Payment</label>
-          <Input
-            name="monthlyPayment"
-            type="number"
-            placeholder="Optional"
-            value={formData.monthlyPayment}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+            <div>
+              <label className="text-sm font-medium">Minimum Payment</label>
+              <Input
+                name="minimumPayment"
+                type="number"
+                placeholder="Optional"
+                value={formData.minimumPayment}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
 
-        <div>
-          <label className="text-sm font-medium">Payoff Date</label>
-          <Input
-            name="payoffDate"
-            type="date"
-            value={formData.payoffDate}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+            <div>
+              <label className="text-sm font-medium">Monthly Payment</label>
+              <Input
+                name="monthlyPayment"
+                type="number"
+                placeholder="Optional"
+                value={formData.monthlyPayment}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
 
-        <div>
-          <label className="text-sm font-medium">Term (months)</label>
-          <Input
-            name="term"
-            type="number"
-            placeholder="Optional"
-            value={formData.term}
-            onChange={handleChange}
-            disabled={loading}
-          />
-        </div>
+            <div>
+              <label className="text-sm font-medium">Payoff Date</label>
+              <Input
+                name="payoffDate"
+                type="date"
+                value={formData.payoffDate}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">Term (months)</label>
+              <Input
+                name="term"
+                type="number"
+                placeholder="Optional"
+                value={formData.term}
+                onChange={handleChange}
+                disabled={loading}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <Button type="submit" className="w-full" disabled={loading}>

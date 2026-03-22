@@ -12,24 +12,37 @@ export function FileUpload({ onSuccess }: FileUploadProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processFile = async (file: File, forceUpload = false) => {
     setError("");
     setLoading(true);
     setUploading(true);
+    setDuplicateWarning(null);
 
     try {
       // Step 1: Upload file to Supabase
       const uploadFormData = new FormData();
       uploadFormData.append("file", file);
+      if (forceUpload) {
+        uploadFormData.append("force", "true");
+      }
 
       const uploadRes = await fetch("/api/upload", {
         method: "POST",
         body: uploadFormData,
       });
+
+      // Check for duplicate warning
+      if (uploadRes.status === 409) {
+        const data = await uploadRes.json();
+        setDuplicateWarning(data.message);
+        setPendingFile(file);
+        setLoading(false);
+        setUploading(false);
+        return;
+      }
 
       if (!uploadRes.ok) {
         const data = await uploadRes.json();
@@ -69,15 +82,9 @@ export function FileUpload({ onSuccess }: FileUploadProps) {
       }
 
       const analysis = await analysisRes.json();
-
-      // Show results - could display extracted debts here
       console.log("Analysis results:", analysis);
 
-      // Reset and refresh
-      if (e.target) {
-        e.target.value = "";
-      }
-
+      setPendingFile(null);
       onSuccess();
     } catch (err) {
       const errorMessage =
@@ -85,7 +92,31 @@ export function FileUpload({ onSuccess }: FileUploadProps) {
       setError(errorMessage);
     } finally {
       setLoading(false);
+      setUploading(false);
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    await processFile(file);
+
+    // Reset input
+    if (e.target) {
+      e.target.value = "";
+    }
+  };
+
+  const handleConfirmDuplicate = () => {
+    if (pendingFile) {
+      processFile(pendingFile, true);
+    }
+  };
+
+  const handleCancelDuplicate = () => {
+    setDuplicateWarning(null);
+    setPendingFile(null);
   };
 
   return (
@@ -93,6 +124,28 @@ export function FileUpload({ onSuccess }: FileUploadProps) {
       {error && (
         <div className="p-3 bg-red-50 text-red-700 rounded text-sm">
           {error}
+        </div>
+      )}
+
+      {duplicateWarning && (
+        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded text-sm">
+          <div className="mb-3 text-yellow-800">{duplicateWarning}</div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleConfirmDuplicate}
+              className="bg-yellow-600 hover:bg-yellow-700"
+            >
+              Upload Anyway
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleCancelDuplicate}
+            >
+              Cancel
+            </Button>
+          </div>
         </div>
       )}
 

@@ -31,7 +31,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    return NextResponse.json(budget.debts);
+    // Convert Decimal/String fields to proper numbers for frontend
+    const formattedDebts = budget.debts.map((debt: any) => ({
+      ...debt,
+      balance: debt.balance ? parseFloat(debt.balance) : undefined,
+      creditLimit: debt.creditLimit ? parseFloat(debt.creditLimit) : undefined,
+      interestRate: debt.interestRate ? parseFloat(debt.interestRate) : undefined,
+      minimumPayment: debt.minimumPayment ? parseFloat(debt.minimumPayment) : undefined,
+      monthlyPayment: debt.monthlyPayment ? parseFloat(debt.monthlyPayment) : undefined,
+      term: debt.term ? parseInt(debt.term) : undefined,
+    }));
+
+    return NextResponse.json(formattedDebts);
   } catch (error) {
     console.error("Debts GET error:", error);
     return NextResponse.json(
@@ -76,13 +87,14 @@ export async function POST(request: NextRequest) {
       data: {
         budgetId: budget.id,
         name: debtData.name,
+        accountNumber: debtData.accountNumber || null,
         type: debtData.type,
         category: debtData.category,
-        balance: parseFloat(debtData.balance),
+        balance: debtData.balance ? parseFloat(debtData.balance) : null,
         creditLimit: debtData.creditLimit
           ? parseFloat(debtData.creditLimit)
           : null,
-        interestRate: parseFloat(debtData.interestRate),
+        interestRate: debtData.interestRate ? parseFloat(debtData.interestRate) : null,
         minimumPayment: debtData.minimumPayment
           ? parseFloat(debtData.minimumPayment)
           : null,
@@ -95,7 +107,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(debt, { status: 201 });
+    // Convert Decimal/String fields to proper numbers for frontend
+    const formattedDebt = {
+      ...debt,
+      balance: debt.balance ? parseFloat(debt.balance as any) : undefined,
+      creditLimit: debt.creditLimit ? parseFloat(debt.creditLimit as any) : undefined,
+      interestRate: debt.interestRate ? parseFloat(debt.interestRate as any) : undefined,
+      minimumPayment: debt.minimumPayment ? parseFloat(debt.minimumPayment as any) : undefined,
+      monthlyPayment: debt.monthlyPayment ? parseFloat(debt.monthlyPayment as any) : undefined,
+      term: debt.term ? parseInt(debt.term as any) : undefined,
+    };
+
+    return NextResponse.json(formattedDebt, { status: 201 });
   } catch (error) {
     console.error("Debt POST error:", error);
     return NextResponse.json(
@@ -145,7 +168,18 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(updated);
+    // Convert Decimal/String fields to proper numbers for frontend
+    const formattedUpdated = {
+      ...updated,
+      balance: updated.balance ? parseFloat(updated.balance as any) : undefined,
+      creditLimit: updated.creditLimit ? parseFloat(updated.creditLimit as any) : undefined,
+      interestRate: updated.interestRate ? parseFloat(updated.interestRate as any) : undefined,
+      minimumPayment: updated.minimumPayment ? parseFloat(updated.minimumPayment as any) : undefined,
+      monthlyPayment: updated.monthlyPayment ? parseFloat(updated.monthlyPayment as any) : undefined,
+      term: updated.term ? parseInt(updated.term as any) : undefined,
+    };
+
+    return NextResponse.json(formattedUpdated);
   } catch (error) {
     console.error("Debt PUT error:", error);
     return NextResponse.json(

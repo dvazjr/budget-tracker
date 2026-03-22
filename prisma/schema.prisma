@@ -45,21 +45,23 @@ model DebtItem {
   id                String     @id @default(cuid())
   budgetId          String
   budget            Budget     @relation(fields: [budgetId], references: [id], onDelete: Cascade)
-  
-  type              String     // 'revolving' | 'loan' | 'utility'
-  category          String     // 'credit_card', 'auto_loan', 'personal_loan', 'electric', etc.
+
+  type              String     // 'revolving' | 'loan' | 'utility' | 'expense'
+  category          String     // 'credit_card', 'auto_loan', 'personal_loan', 'electric', 'food', 'gasoline', 'entertainment', etc.
   name              String
-  balance           Decimal
+  accountNumber     String?    // Last 4 digits or full account number
+  balance           Decimal?   // Optional for expense type
   creditLimit       Decimal?   // For revolving only
-  interestRate      Decimal    // Annual percentage rate
+  interestRate      Decimal?   // Optional for expense type
   minimumPayment    Decimal?   // For revolving
   monthlyPayment    Decimal?   // For loans and utilities
   payoffDate        DateTime?  // For loans
   term              Int?       // Months remaining
-  
+  includeInAnalysis Boolean    @default(true) // Include in payoff strategy analysis
+
   source            String     // 'manual' | 'pdf_upload'
   extractedData     Json?      // Original AI extraction for audit trail
-  
+
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
