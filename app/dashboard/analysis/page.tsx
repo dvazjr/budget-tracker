@@ -14,8 +14,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Pie,
-  Cell,
 } from "recharts";
 
 interface DebtItem {
