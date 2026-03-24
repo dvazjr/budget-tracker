@@ -14,7 +14,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  PieChart,
   Pie,
   Cell,
 } from "recharts";
