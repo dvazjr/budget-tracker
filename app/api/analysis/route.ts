@@ -36,8 +36,8 @@ export async function GET() {
 
     // Generate analysis using Gemini
     const analysis = await generateFinancialAnalysis({
-      mainIncome: budget.mainIncome,
-      sideIncome: budget.sideIncome,
+      mainIncome: parseFloat(budget.mainIncome as any) || 0,
+      sideIncome: parseFloat(budget.sideIncome as any) || 0,
       debts: budget.debts,
     });
 
