@@ -297,8 +297,8 @@ npm run test
 # Create new migration
 npx prisma migrate dev --name migration_name
 
-# View database in UI
-npx prisma studio
+# View database in UI (use Supabase Dashboard instead - more reliable)
+# Go to: https://supabase.com/dashboard > Your Project > Table Editor
 ```
 
 ## Future Enhancements
