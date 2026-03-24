@@ -5,6 +5,8 @@ import { analyzeDebtStatement } from "@/lib/gemini";
 import { supabaseServer } from "@/lib/supabase";
 import { NextRequest, NextResponse } from "next/server";
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
