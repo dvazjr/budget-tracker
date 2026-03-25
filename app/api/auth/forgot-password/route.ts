@@ -11,63 +11,66 @@ export const dynamic = "force-dynamic";
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
 function hashToken(raw: string): string {
-  return crypto.createHash("sha256").update(raw).digest("hex");
+    return crypto.createHash("sha256").update(raw).digest("hex");
 }
 
 export async function POST(request: NextRequest) {
-  const corsError = rejectCrossOrigin(request);
-  if (corsError) return corsError;
+    const corsError = rejectCrossOrigin(request);
+    if (corsError) return corsError;
 
   // Strict rate limit: 3 requests per hour per IP to prevent email flooding
   const ip = getClientIp(request);
-  const rl = checkRateLimit(`forgot-password:${ip}`, { limit: 3, windowMs: 60 * 60 * 1000 });
-  if (!rl.allowed) {
-    return NextResponse.json(
-      { error: "Too many requests. Please try again later." },
-      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
-    );
-  }
-
-  try {
-    const body = await request.json();
-    const email = (body.email ?? "").toString().toLowerCase().trim();
-
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    const rl = checkRateLimit(`forgot-password:${ip}`, { limit: 3, windowMs: 60 * 60 * 1000 });
+    if (!rl.allowed) {
+          return NextResponse.json(
+            { error: "Too many requests. Please try again later." },
+            { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+                );
     }
 
-    // Always return the same response whether the email exists or not —
-    // prevents user enumeration.
-    const genericResponse = NextResponse.json({
-      message: "If that email is registered, you'll receive a reset link shortly.",
-    });
+  try {
+        const body = await request.json();
+        const email = (body.email ?? "").toString().toLowerCase().trim();
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return genericResponse;
+      if (!email) {
+              return NextResponse.json({ error: "Email is required" }, { status: 400 });
+      }
 
-    // Invalidate any existing tokens for this user
-    await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
+      // Always return the same response whether the email exists or not —
+      // prevents user enumeration.
+      const genericResponse = NextResponse.json({
+              message: "If that email is registered, you'll receive a reset link shortly.",
+      });
 
-    // Generate a cryptographically secure token
-    const rawToken = crypto.randomBytes(32).toString("hex");
-    const tokenHash = hashToken(rawToken);
+      const user = await prisma.user.findUnique({ where: { email } });
+        console.log(`[forgot-password] user lookup for "${email}": ${user ? "FOUND (id=" + user.id + ")" : "NOT FOUND"}`);
+        if (!user) return genericResponse;
 
-    await prisma.passwordResetToken.create({
-      data: {
-        userId: user.id,
-        tokenHash,
-        expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
-      },
-    });
+      // Invalidate any existing tokens for this user
+      await prisma.passwordResetToken.deleteMany({ where: { userId: user.id } });
 
-    await sendPasswordResetEmail(email, rawToken);
+      // Generate a cryptographically secure token
+      const rawToken = crypto.randomBytes(32).toString("hex");
+        const tokenHash = hashToken(rawToken);
 
-    return genericResponse;
+      await prisma.passwordResetToken.create({
+              data: {
+                        userId: user.id,
+                        tokenHash,
+                        expiresAt: new Date(Date.now() + TOKEN_TTL_MS),
+              },
+      });
+
+      console.log(`[forgot-password] sending reset email to "${email}"...`);
+        const emailResult = await sendPasswordResetEmail(email, rawToken);
+        console.log(`[forgot-password] email send result:`, JSON.stringify(emailResult));
+
+      return genericResponse;
   } catch (error) {
-    console.error("Forgot password error:", error);
-    // Return the same generic message on error too — don't leak server details
-    return NextResponse.json({
-      message: "If that email is registered, you'll receive a reset link shortly.",
-    });
+        console.error("Forgot password error:", error);
+        // Return the same generic message on error too — don't leak server details
+      return NextResponse.json({
+              message: "If that email is registered, you'll receive a reset link shortly.",
+      });
   }
 }
