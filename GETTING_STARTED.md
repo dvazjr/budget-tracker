@@ -36,7 +36,7 @@ Follow these steps in order. Total time: ~35 minutes.
 - Database URL (DATABASE_URL)
 
 **From Gemini, get:**
-- API Key (NEXT_PUBLIC_GEMINI_API_KEY)
+- API Key (GEMINI_API_KEY)
 
 **Generate:**
 - Secret with: `openssl rand -base64 32` (NEXTAUTH_SECRET)

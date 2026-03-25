@@ -82,7 +82,7 @@ eyJhbGciOiJIUzI1NiIs...
 5. Wait for project creation
 6. Copy the API key
 
-This is your `NEXT_PUBLIC_GEMINI_API_KEY`
+This is your `GEMINI_API_KEY`
 
 Example:
 ```
@@ -139,7 +139,7 @@ NEXTAUTH_SECRET=abc123xyz789/QwErTyUiOpAsdfghjkl==
 NEXTAUTH_URL=http://localhost:3000
 
 # Gemini API
-NEXT_PUBLIC_GEMINI_API_KEY=AIzaSyD-...your_key...
+GEMINI_API_KEY=AIzaSyD-...your_key...
 
 # Storage
 NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=budget-tracker-uploads
@@ -248,7 +248,7 @@ This will:
 | DATABASE_URL | Supabase → Settings → Database | PostgreSQL | postgresql://... |
 | NEXTAUTH_SECRET | Generate locally | Base64 | abc123... |
 | NEXTAUTH_URL | Your app | URL | http://localhost:3000 |
-| NEXT_PUBLIC_GEMINI_API_KEY | Google Gemini | Token | AIza... |
+| GEMINI_API_KEY | Google Gemini | Token | AIza... |
 | NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET | Created in Storage | String | budget-tracker-uploads |
 
 ---

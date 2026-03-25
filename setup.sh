@@ -45,7 +45,7 @@ if [ ! -f .env.local ]; then
     echo "  3. SUPABASE_SERVICE_ROLE_KEY"
     echo "  4. DATABASE_URL"
     echo "  5. NEXTAUTH_SECRET (generate: openssl rand -base64 32)"
-    echo "  6. NEXT_PUBLIC_GEMINI_API_KEY"
+    echo "  6. GEMINI_API_KEY"
     echo ""
     read -p "Press Enter after filling .env.local..."
 else

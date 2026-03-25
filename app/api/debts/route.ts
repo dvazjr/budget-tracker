@@ -2,6 +2,15 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { rejectCrossOrigin } from "@/lib/cors";
+
+const VALID_TYPES = new Set(["revolving", "loan", "utility", "recurring"]);
+const VALID_SOURCES = new Set(["manual", "pdf_upload", "default"]);
+const MAX_STRING_LENGTH = 200;
+
+function sanitizeString(val: unknown, maxLen = MAX_STRING_LENGTH): string {
+  return String(val ?? "").trim().slice(0, maxLen);
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -55,6 +64,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const corsError = rejectCrossOrigin(request);
+  if (corsError) return corsError;
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -85,27 +97,34 @@ export async function POST(request: NextRequest) {
 
     const debtData = await request.json();
 
+    const name = sanitizeString(debtData.name);
+    if (!name) {
+      return NextResponse.json({ error: "Debt name is required" }, { status: 400 });
+    }
+
+    const type = sanitizeString(debtData.type);
+    if (!VALID_TYPES.has(type)) {
+      return NextResponse.json({ error: "Invalid debt type" }, { status: 400 });
+    }
+
+    const source = sanitizeString(debtData.source || "manual");
+    const validatedSource = VALID_SOURCES.has(source) ? source : "manual";
+
     const debt = await prisma.debtItem.create({
       data: {
         budgetId: budget.id,
-        name: debtData.name,
-        accountNumber: debtData.accountNumber || null,
-        type: debtData.type,
-        category: debtData.category,
+        name,
+        accountNumber: debtData.accountNumber ? sanitizeString(debtData.accountNumber, 4) : null,
+        type,
+        category: sanitizeString(debtData.category, 50),
         balance: debtData.balance ? parseFloat(debtData.balance) : null,
-        creditLimit: debtData.creditLimit
-          ? parseFloat(debtData.creditLimit)
-          : null,
+        creditLimit: debtData.creditLimit ? parseFloat(debtData.creditLimit) : null,
         interestRate: debtData.interestRate ? parseFloat(debtData.interestRate) : null,
-        minimumPayment: debtData.minimumPayment
-          ? parseFloat(debtData.minimumPayment)
-          : null,
-        monthlyPayment: debtData.monthlyPayment
-          ? parseFloat(debtData.monthlyPayment)
-          : null,
+        minimumPayment: debtData.minimumPayment ? parseFloat(debtData.minimumPayment) : null,
+        monthlyPayment: debtData.monthlyPayment ? parseFloat(debtData.monthlyPayment) : null,
         payoffDate: debtData.payoffDate ? new Date(debtData.payoffDate) : null,
         term: debtData.term ? parseInt(debtData.term) : null,
-        source: debtData.source || "manual",
+        source: validatedSource,
       },
     });
 
@@ -131,6 +150,9 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  const corsError = rejectCrossOrigin(request);
+  if (corsError) return corsError;
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -138,7 +160,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, ...updateData } = await request.json();
+    const body = await request.json();
+    const { id, ...updateData } = body;
+
+    if (!id || typeof id !== "string") {
+      return NextResponse.json({ error: "Debt ID is required" }, { status: 400 });
+    }
+
+    // Validate type if provided
+    if (updateData.type !== undefined && !VALID_TYPES.has(sanitizeString(updateData.type))) {
+      return NextResponse.json({ error: "Invalid debt type" }, { status: 400 });
+    }
 
     // Verify debt belongs to user
     const debt = await prisma.debtItem.findUnique({
@@ -153,20 +185,16 @@ export async function PUT(request: NextRequest) {
     const updated = await prisma.debtItem.update({
       where: { id },
       data: {
-        ...updateData,
+        ...(updateData.name !== undefined && { name: sanitizeString(updateData.name) }),
+        ...(updateData.type !== undefined && { type: sanitizeString(updateData.type) }),
+        ...(updateData.category !== undefined && { category: sanitizeString(updateData.category, 50) }),
+        ...(updateData.accountNumber !== undefined && { accountNumber: sanitizeString(updateData.accountNumber, 4) }),
         balance: updateData.balance ? parseFloat(updateData.balance) : undefined,
-        creditLimit: updateData.creditLimit
-          ? parseFloat(updateData.creditLimit)
-          : undefined,
-        interestRate: updateData.interestRate
-          ? parseFloat(updateData.interestRate)
-          : undefined,
-        minimumPayment: updateData.minimumPayment
-          ? parseFloat(updateData.minimumPayment)
-          : undefined,
-        monthlyPayment: updateData.monthlyPayment
-          ? parseFloat(updateData.monthlyPayment)
-          : undefined,
+        creditLimit: updateData.creditLimit ? parseFloat(updateData.creditLimit) : undefined,
+        interestRate: updateData.interestRate ? parseFloat(updateData.interestRate) : undefined,
+        minimumPayment: updateData.minimumPayment ? parseFloat(updateData.minimumPayment) : undefined,
+        monthlyPayment: updateData.monthlyPayment ? parseFloat(updateData.monthlyPayment) : undefined,
+        ...(updateData.includeInAnalysis !== undefined && { includeInAnalysis: Boolean(updateData.includeInAnalysis) }),
       },
     });
 
@@ -192,6 +220,9 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function DELETE(request: NextRequest) {
+  const corsError = rejectCrossOrigin(request);
+  if (corsError) return corsError;
+
   try {
     const session = await getServerSession(authOptions);
 

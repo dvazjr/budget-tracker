@@ -3,10 +3,14 @@ import { authOptions } from "@/lib/auth";
 import { supabaseServer } from "@/lib/supabase";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { rejectCrossOrigin } from "@/lib/cors";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
+  const corsError = rejectCrossOrigin(request);
+  if (corsError) return corsError;
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -84,8 +88,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Sanitize filename: strip path separators and non-ASCII characters,
+    // then truncate to prevent excessively long storage keys.
+    const safeBaseName = file.name
+      .replace(/[^a-zA-Z0-9._-]/g, "_")
+      .replace(/\.{2,}/g, "_")
+      .slice(0, 100);
+
     // Upload to Supabase Storage
-    const fileName = `${session.user.id}/${Date.now()}-${file.name}`;
+    const fileName = `${session.user.id}/${Date.now()}-${safeBaseName}`;
     const { data, error: uploadError } = await supabaseServer.storage
       .from("budget-tracker-uploads")
       .upload(fileName, file);

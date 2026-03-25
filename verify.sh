@@ -38,7 +38,7 @@ if [ -f .env.local ]; then
         "SUPABASE_SERVICE_ROLE_KEY"
         "DATABASE_URL"
         "NEXTAUTH_SECRET"
-        "NEXT_PUBLIC_GEMINI_API_KEY"
+        "GEMINI_API_KEY"
     )
     
     for var in "${required_vars[@]}"; do

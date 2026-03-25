@@ -229,7 +229,7 @@ This document confirms everything has been built, tested, and is ready for deplo
 ✅ DATABASE_URL
 ✅ NEXTAUTH_SECRET
 ✅ NEXTAUTH_URL
-✅ NEXT_PUBLIC_GEMINI_API_KEY
+✅ GEMINI_API_KEY
 ✅ NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET
 ```
 

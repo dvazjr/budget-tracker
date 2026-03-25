@@ -35,7 +35,7 @@ npm install
 # - SUPABASE_SERVICE_ROLE_KEY
 # - DATABASE_URL (from Supabase)
 # - NEXTAUTH_SECRET (generate: openssl rand -base64 32)
-# - NEXT_PUBLIC_GEMINI_API_KEY
+# - GEMINI_API_KEY
 
 # Run migrations
 npx prisma migrate dev --name init
@@ -116,7 +116,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
 NEXTAUTH_SECRET=
 NEXTAUTH_URL=http://localhost:3000
-NEXT_PUBLIC_GEMINI_API_KEY=
+GEMINI_API_KEY=
 NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=budget-tracker-uploads
 ```
 

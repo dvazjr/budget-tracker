@@ -1,13 +1,29 @@
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
+import { rejectCrossOrigin } from "@/lib/cors";
 
 export const dynamic = 'force-dynamic';
 
-const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
 
+const MAX_PROMPT_LENGTH = 2000;
+
 export async function POST(request: NextRequest) {
+  const corsError = rejectCrossOrigin(request);
+  if (corsError) return corsError;
+
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(`ai-summary:${ip}`, { limit: 20, windowMs: 60 * 60 * 1000 });
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests. Please try again later." },
+      { status: 429, headers: { "Retry-After": String(Math.ceil((rl.resetAt - Date.now()) / 1000)) } }
+    );
+  }
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -17,8 +33,15 @@ export async function POST(request: NextRequest) {
 
     const { prompt } = await request.json();
 
-    if (!prompt) {
+    if (!prompt || typeof prompt !== "string") {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+    }
+
+    if (prompt.length > MAX_PROMPT_LENGTH) {
+      return NextResponse.json(
+        { error: `Prompt must be at most ${MAX_PROMPT_LENGTH} characters` },
+        { status: 400 }
+      );
     }
 
     const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {

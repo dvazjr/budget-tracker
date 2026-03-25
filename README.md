@@ -89,7 +89,7 @@ npm install
    NEXTAUTH_URL=http://localhost:3000
 
    # Gemini API
-   NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key_here
+   GEMINI_API_KEY=your_gemini_key_here
 
    # Storage
    NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=budget-tracker-uploads

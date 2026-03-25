@@ -15,7 +15,8 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const budgetId = searchParams.get("budgetId");
-    const limit = parseInt(searchParams.get("limit") || "10");
+    const rawLimit = parseInt(searchParams.get("limit") || "10");
+    const limit = Number.isNaN(rawLimit) ? 10 : Math.min(Math.max(1, rawLimit), 100);
 
     if (!budgetId) {
       return NextResponse.json(

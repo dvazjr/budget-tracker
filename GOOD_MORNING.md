@@ -53,7 +53,7 @@ This guide gets you from bed to production. Let's go!
 1. Go to https://ai.google.dev
 2. Click "Get API Key"
 3. Create new API key
-4. Copy it → `NEXT_PUBLIC_GEMINI_API_KEY`
+4. Copy it → `GEMINI_API_KEY`
 
 ### ✅ STEP 2: Setup Locally (10 minutes)
 
@@ -74,7 +74,7 @@ cp .env.example .env.local
 # DATABASE_URL=...
 # NEXTAUTH_SECRET=generate: openssl rand -base64 32
 # NEXTAUTH_URL=http://localhost:3000
-# NEXT_PUBLIC_GEMINI_API_KEY=...
+# GEMINI_API_KEY=...
 # NEXT_PUBLIC_SUPABASE_STORAGE_BUCKET=budget-tracker-uploads
 
 # Run database migrations

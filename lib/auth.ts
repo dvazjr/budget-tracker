@@ -3,6 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -18,21 +19,26 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
-
-        if (!user) {
-          throw new Error("User not found");
+        // Rate-limit login attempts per email to slow brute-force attacks.
+        const emailKey = credentials.email.toLowerCase().trim();
+        const rl = checkRateLimit(`login:${emailKey}`, { limit: 10, windowMs: 15 * 60 * 1000 });
+        if (!rl.allowed) {
+          throw new Error("Too many login attempts. Please try again later.");
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
+        const user = await prisma.user.findUnique({
+          where: { email: credentials.email.toLowerCase().trim() },
+        });
 
-        if (!isPasswordValid) {
-          throw new Error("Invalid password");
+        // Use a constant-time comparison path even when user not found
+        // to prevent user enumeration via timing attacks.
+        const dummyHash = "$2b$10$invalidhashfortimingprotectiononly00000000000000000000";
+        const isPasswordValid = user
+          ? await bcrypt.compare(credentials.password, user.password)
+          : await bcrypt.compare(credentials.password, dummyHash);
+
+        if (!user || !isPasswordValid) {
+          throw new Error("Invalid credentials");
         }
 
         return {
@@ -62,7 +68,24 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 24 * 60 * 60,     // 24 hours — shorter window for a financial app
+    updateAge: 60 * 60,        // Refresh the token every hour of activity
+  },
+  // Harden the session cookie: HttpOnly, Secure (HTTPS-only), SameSite=strict.
+  // The __Secure- prefix tells browsers to only send the cookie over HTTPS.
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict" as const,
+        path: "/",
+      },
+    },
   },
   secret: process.env.NEXTAUTH_SECRET,
 };

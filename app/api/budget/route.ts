@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { rejectCrossOrigin } from "@/lib/cors";
 
 export const dynamic = 'force-dynamic';
 
@@ -102,6 +103,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  const corsError = rejectCrossOrigin(request);
+  if (corsError) return corsError;
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -109,11 +113,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { mainIncome, sideIncome, monthYear } = await request.json();
+    const body = await request.json();
+    const { mainIncome, sideIncome } = body;
+    const rawMonthYear: string = body.monthYear || "";
 
-    const budgetMonthYear =
-      monthYear ||
-      `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+    // Validate monthYear format: YYYY-MM, and must be a plausible date
+    const MONTH_YEAR_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/;
+    const defaultMonthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+    const budgetMonthYear = MONTH_YEAR_REGEX.test(rawMonthYear) ? rawMonthYear : defaultMonthYear;
 
     const budget = await prisma.budget.upsert({
       where: {
