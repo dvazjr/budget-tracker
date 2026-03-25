@@ -5,6 +5,8 @@ import { checkRateLimit, getClientIp } from "@/lib/rate-limit";
 import { rejectCrossOrigin } from "@/lib/cors";
 import crypto from "crypto";
 
+export const dynamic = "force-dynamic";
+
 // Token is valid for 1 hour
 const TOKEN_TTL_MS = 60 * 60 * 1000;
 
