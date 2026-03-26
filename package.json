@@ -34,7 +34,7 @@
           "next-auth": "^4.24.0",
           "pdfjs-dist": "^4.0.0",
           "postcss": "^8.4.0",
-          "prisma": "^5.8.0",
+          "prisma": "^7.5.0",
           "react": "^18.3.0",
           "react-dom": "^18.3.0",
           "recharts": "^2.10.0",
