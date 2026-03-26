@@ -3,14 +3,14 @@ import { Resend } from "resend";
 export async function sendPasswordResetEmail(
   toEmail: string,
   rawToken: string
-): Promise<void> {
+): Promise<{ id: string }> {
   // Initialize lazily so the module can be imported during build without an API key.
   const resend = new Resend(process.env.RESEND_API_KEY);
   const FROM = process.env.RESEND_FROM_EMAIL ?? "Budget Tracker <noreply@example.com>";
   const APP_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
   const resetUrl = `${APP_URL}/auth/reset-password?token=${rawToken}`;
 
-  await resend.emails.send({
+  const { data, error } = await resend.emails.send({
     from: FROM,
     to: toEmail,
     subject: "Reset your Budget Tracker password",
@@ -33,4 +33,10 @@ export async function sendPasswordResetEmail(
       </div>
     `,
   });
+
+  if (error) {
+    throw new Error(`Resend error: ${error.message}`);
+  }
+
+  return data as { id: string };
 }
